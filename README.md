@@ -17,7 +17,7 @@ Este proyecto implementa un servidor MCP (Model Context Protocol) en Node.js, di
 
 1. Clona este repositorio en tu máquina local:
    ```bash
-   git clone <URL-del-repositorio>
+   git clone https://github.com/Vrivaans/handsai-bridge.git
    cd handsai-bridge
    ```
 
