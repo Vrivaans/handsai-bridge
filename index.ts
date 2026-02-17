@@ -46,6 +46,8 @@ class HandsAIMcpBridge {
 
     private loadConfig(): string {
         const configFile = path.join(process.cwd(), 'config.json');
+        const defaultConfig: Config = { handsaiUrl: 'http://localhost:8080' };
+
         try {
             if (fs.existsSync(configFile)) {
                 const configContent = fs.readFileSync(configFile, 'utf-8');
@@ -53,11 +55,15 @@ class HandsAIMcpBridge {
                 if (config.handsaiUrl) {
                     return config.handsaiUrl;
                 }
+            } else {
+                // Create default config file if it doesn't exist
+                fs.writeFileSync(configFile, JSON.stringify(defaultConfig, null, 2), 'utf-8');
             }
         } catch (error) {
             // Silently fail and use default
+            console.error('Error loading/creating config:', error);
         }
-        return 'http://localhost:8080';
+        return defaultConfig.handsaiUrl || 'http://localhost:8080';
     }
 
     async start(): Promise<void> {

@@ -65,7 +65,9 @@ El propósito principal de este bridge es servir como un punto de conexión para
 
 ## Configuración Avanzada
 
-Por defecto, el bridge intenta conectarse a `http://localhost:8080`. Si tu servidor HandsAI está en otra dirección o puerto, puedes crear un archivo `config.json` en la misma carpeta que `index.ts` con el siguiente contenido:
+Por defecto, el bridge intenta conectarse a `http://localhost:8080`.
+
+Al iniciar por primera vez, el servidor **creará automáticamente** un archivo `config.json` en la misma carpeta que `index.ts` con la configuración por defecto. Puedes editar este archivo para cambiar la URL:
 
 ```json
 {
