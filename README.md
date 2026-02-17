@@ -62,3 +62,13 @@ El archivo `index.ts` contiene la lógica principal para levantar el servidor, e
 ## Conexión con HandsAI
 
 El propósito principal de este bridge es servir como un punto de conexión para el servidor de Java del proyecto [HandsAI](https://github.com/Vrivaans/handsai). El servidor de Java actuará como cliente de este bridge, permitiendo el intercambio de información y comandos entre ambos sistemas.
+
+## Configuración Avanzada
+
+Por defecto, el bridge intenta conectarse a `http://localhost:8080`. Si tu servidor HandsAI está en otra dirección o puerto, puedes crear un archivo `config.json` en la misma carpeta que `index.ts` con el siguiente contenido:
+
+```json
+{
+  "handsaiUrl": "http://tu-servidor:puerto"
+}
+```

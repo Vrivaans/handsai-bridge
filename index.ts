@@ -5,7 +5,13 @@
  * Conecta MCP clients con HandsAI Spring Boot server via HTTP
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import * as readline from 'readline';
+
+interface Config {
+    handsaiUrl?: string;
+}
 
 interface McpRequest {
     jsonrpc: string;
@@ -29,13 +35,29 @@ class HandsAIMcpBridge {
     private readonly handsaiBaseUrl: string;
     private readonly rl: readline.Interface;
 
-    constructor(handsaiUrl = 'http://localhost:8080') {
-        this.handsaiBaseUrl = handsaiUrl;
+    constructor() {
+        this.handsaiBaseUrl = this.loadConfig();
         this.rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
             terminal: false
         });
+    }
+
+    private loadConfig(): string {
+        const configFile = path.join(process.cwd(), 'config.json');
+        try {
+            if (fs.existsSync(configFile)) {
+                const configContent = fs.readFileSync(configFile, 'utf-8');
+                const config: Config = JSON.parse(configContent);
+                if (config.handsaiUrl) {
+                    return config.handsaiUrl;
+                }
+            }
+        } catch (error) {
+            // Silently fail and use default
+        }
+        return 'http://localhost:8080';
     }
 
     async start(): Promise<void> {
