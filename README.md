@@ -1,6 +1,6 @@
 # HandsAI Bridge
 
-Este proyecto implementa un servidor MCP (Model Context Protocol) en Node.js, diseñado para actuar como un puente de comunicación para el proyecto [HandsAI](https://github.com/Vrivaans/handsai). Permite que el servidor principal de Java de HandsAI se conecte e interactúe con este bridge a través de un socket.
+Este proyecto implementa un servidor MCP (Model Context Protocol) en Node.js, diseñado para actuar como un puente de comunicación para el proyecto [HandsAI v3](https://github.com/Vrivaans/handsaiv3). Permite que el servidor principal de Java de HandsAI se conecte e interactúe con este bridge a través de un socket.
 
 ## Características
 
