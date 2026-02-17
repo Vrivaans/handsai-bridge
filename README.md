@@ -51,6 +51,8 @@ Asegúrate de reemplazar la ruta en `args` con la ruta **absoluta** al archivo `
 }
 ```
 
+> **Nota:** Si experimentas errores de permisos (`EPERM`) al conectar con Claude Desktop en macOS, intenta mover la carpeta del proyecto a una ubicación pública como `Documentos`. MacOS a veces restringe el acceso de aplicaciones a carpetas como `Escritorio`, `Descargas` o carpetas sincronizadas.
+
 ### Ejecución
 
 Una vez que el cliente MCP esté configurado, iniciará automáticamente el servidor `handsai-bridge` cuando sea necesario, utilizando el comando y los argumentos especificados. No necesitas ejecutar el servidor manualmente.

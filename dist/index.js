@@ -1,34 +1,12 @@
 #!/usr/bin/env node
-
 /**
  * MCP Bridge para HandsAI
  * Conecta MCP clients con HandsAI Spring Boot server via HTTP
  */
-
 import * as readline from 'readline';
-
-interface McpRequest {
-    jsonrpc: string;
-    id?: number | string | null;
-    method: string;
-    params?: any;
-}
-
-interface McpResponse {
-    jsonrpc: string;
-    id?: number | string | null;
-    result?: any;
-    error?: {
-        code: number;
-        message: string;
-        data?: any;
-    };
-}
-
 class HandsAIMcpBridge {
-    private readonly handsaiBaseUrl: string;
-    private readonly rl: readline.Interface;
-
+    handsaiBaseUrl;
+    rl;
     constructor(handsaiUrl = 'http://localhost:8080') {
         this.handsaiBaseUrl = handsaiUrl;
         this.rl = readline.createInterface({
@@ -37,19 +15,18 @@ class HandsAIMcpBridge {
             terminal: false
         });
     }
-
-    async start(): Promise<void> {
+    async start() {
         this.rl.on('line', async (line) => {
             try {
-                const request: McpRequest = JSON.parse(line.trim());
+                const request = JSON.parse(line.trim());
                 const response = await this.handleMcpRequest(request);
-
                 if (response) {
                     console.log(JSON.stringify(response));
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 // SIEMPRE incluir el ID de la request original, incluso en errores de parse
-                const errorResponse: McpResponse = {
+                const errorResponse = {
                     jsonrpc: '2.0',
                     id: null, // Para errores de parse, se usa null según JSON-RPC 2.0
                     error: {
@@ -61,13 +38,11 @@ class HandsAIMcpBridge {
                 console.log(JSON.stringify(errorResponse));
             }
         });
-
         this.rl.on('close', () => {
             process.exit(0);
         });
     }
-
-    private async handleMcpRequest(request: McpRequest): Promise<McpResponse | null> {
+    async handleMcpRequest(request) {
         // CRÍTICO: Validar que el request tenga la estructura mínima
         if (!request.jsonrpc || request.jsonrpc !== '2.0') {
             return {
@@ -79,7 +54,6 @@ class HandsAIMcpBridge {
                 }
             };
         }
-
         if (!request.method) {
             return {
                 jsonrpc: '2.0',
@@ -90,7 +64,6 @@ class HandsAIMcpBridge {
                 }
             };
         }
-
         switch (request.method) {
             case 'initialize':
                 return this.handleInitialize(request);
@@ -112,8 +85,7 @@ class HandsAIMcpBridge {
                 };
         }
     }
-
-    private handleInitialize(request: McpRequest): McpResponse {
+    handleInitialize(request) {
         return {
             jsonrpc: '2.0',
             id: request.id, // Usar el ID original de la request
@@ -131,35 +103,30 @@ class HandsAIMcpBridge {
             }
         };
     }
-
-    private async handleListTools(request: McpRequest): Promise<McpResponse> {
+    async handleListTools(request) {
         try {
             const response = await fetch(`${this.handsaiBaseUrl}/mcp/tools/list`);
-
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
             const data = await response.json();
-
             // Validar que la respuesta tenga la estructura esperada
             if (!data || typeof data !== 'object') {
                 throw new Error('Invalid response format from HandsAI server');
             }
-
             // Manejar diferentes formatos de respuesta del servidor HandsAI
             let tools = [];
-
             if (data.result && Array.isArray(data.result.tools)) {
                 tools = data.result.tools;
-            } else if (Array.isArray(data.tools)) {
+            }
+            else if (Array.isArray(data.tools)) {
                 tools = data.tools;
-            } else if (Array.isArray(data)) {
+            }
+            else if (Array.isArray(data)) {
                 tools = data;
             }
-
             // Convertir a formato MCP estándar
-            const mcpTools = tools.map((tool: any) => ({
+            const mcpTools = tools.map((tool) => ({
                 name: tool.name || 'unknown',
                 description: tool.description || 'No description available',
                 inputSchema: tool.inputSchema || {
@@ -168,7 +135,6 @@ class HandsAIMcpBridge {
                     required: []
                 }
             }));
-
             return {
                 jsonrpc: '2.0',
                 id: request.id, // Usar el ID original
@@ -176,7 +142,8 @@ class HandsAIMcpBridge {
                     tools: mcpTools
                 }
             };
-        } catch (error) {
+        }
+        catch (error) {
             return {
                 jsonrpc: '2.0',
                 id: request.id, // Usar el ID original
@@ -188,8 +155,7 @@ class HandsAIMcpBridge {
             };
         }
     }
-
-    private async handleCallTool(request: McpRequest): Promise<McpResponse> {
+    async handleCallTool(request) {
         // Validar parámetros requeridos
         if (!request.params || !request.params.name) {
             return {
@@ -201,10 +167,8 @@ class HandsAIMcpBridge {
                 }
             };
         }
-
         const toolName = request.params.name;
         const arguments_ = request.params.arguments || {};
-
         try {
             const mcpCallRequest = {
                 jsonrpc: '2.0',
@@ -215,7 +179,6 @@ class HandsAIMcpBridge {
                     arguments: arguments_
                 }
             };
-
             const response = await fetch(`${this.handsaiBaseUrl}/mcp/tools/call`, {
                 method: 'POST',
                 headers: {
@@ -223,25 +186,23 @@ class HandsAIMcpBridge {
                 },
                 body: JSON.stringify(mcpCallRequest)
             });
-
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
             const data = await response.json();
-
             // Validar respuesta del servidor
             if (!data || typeof data !== 'object') {
                 throw new Error('Invalid response format from HandsAI server');
             }
-
             // Manejar diferentes formatos de respuesta
             let result;
             if (data.result) {
                 result = data.result;
-            } else if (data.content) {
+            }
+            else if (data.content) {
                 result = { content: data.content };
-            } else {
+            }
+            else {
                 result = {
                     content: [{
                         type: 'text',
@@ -249,14 +210,13 @@ class HandsAIMcpBridge {
                     }]
                 };
             }
-
             return {
                 jsonrpc: '2.0',
                 id: request.id, // CRÍTICO: Usar el ID original de la request
                 result: result
             };
-
-        } catch (error) {
+        }
+        catch (error) {
             return {
                 jsonrpc: '2.0',
                 id: request.id, // Usar el ID original
@@ -269,7 +229,6 @@ class HandsAIMcpBridge {
         }
     }
 }
-
 // Inicializar bridge
 const bridge = new HandsAIMcpBridge();
 bridge.start().catch((error) => {
