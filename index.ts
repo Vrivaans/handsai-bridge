@@ -49,21 +49,17 @@ class HandsAIMcpBridge {
         const defaultConfig: Config = { handsaiUrl: 'http://localhost:8080' };
 
         try {
-            if (fs.existsSync(configFile)) {
-                const configContent = fs.readFileSync(configFile, 'utf-8');
-                const config: Config = JSON.parse(configContent);
-                if (config.handsaiUrl) {
-                    return config.handsaiUrl;
-                }
-            } else {
-                // Create default config file if it doesn't exist
+            if (!fs.existsSync(configFile)) {
                 fs.writeFileSync(configFile, JSON.stringify(defaultConfig, null, 2), 'utf-8');
             }
+
+            const configContent = fs.readFileSync(configFile, 'utf-8');
+            const config: Config = JSON.parse(configContent);
+            return config.handsaiUrl || defaultConfig.handsaiUrl!;
         } catch (error) {
-            // Silently fail and use default
-            console.error('Error loading/creating config:', error);
+            console.error('Error loading config:', error);
+            return defaultConfig.handsaiUrl!;
         }
-        return defaultConfig.handsaiUrl || 'http://localhost:8080';
     }
 
     async start(): Promise<void> {
