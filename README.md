@@ -1,76 +1,101 @@
-# HandsAI Bridge
+# HandsAI Bridge (Go)
 
-Este proyecto implementa un servidor MCP (Model Context Protocol) en Node.js, diseñado para actuar como un puente de comunicación para el proyecto [HandsAI v3](https://github.com/Vrivaans/handsaiv3). Permite que el servidor principal de Java de HandsAI se conecte e interactúe con este bridge a través de un socket.
+A lightweight MCP (Model Context Protocol) server written in Go that acts as a bridge between any MCP-compatible IDE client and the [HandsAI v3](https://github.com/Vrivaans/handsaiv3) Spring Boot backend.
 
-## Características
+It translates **JSON-RPC over stdio** (the MCP standard) into plain **HTTP REST calls** to the HandsAI API, and back.
 
-- Implementación de un servidor MCP utilizando Node.js y TypeScript.
-- Configuración sencilla para la integración con clientes MCP.
-- Diseñado para ser ligero y fácil de extender.
+> The previous Node.js/TypeScript implementation has been deprecated in favor of this Go version due to its universal compatibility with restricted IDE environments (like Antigravity and Claude Desktop) where runtime dependencies like `node`, `npx`, or `tsx` are often unavailable.
 
-## Requisitos Previos
+## Why Go?
 
-- [Node.js](https://nodejs.org/) (versión 20.x o superior)
-- [npm](https://www.npmjs.com/) (generalmente se instala con Node.js)
+- **Zero runtime dependencies** — compile once, run anywhere. No Node, no npm, no PATH issues.
+- **Single binary** — one executable file, easy to distribute.
+- **IDE-agnostic** — works identically in Antigravity, Claude Desktop, VS Code, and any other MCP client.
+- **Fast startup** — no JVM warmup, no package loading.
 
-## Instalación
+## Prerequisites
 
-1. Clona este repositorio en tu máquina local:
-   ```bash
-   git clone https://github.com/Vrivaans/handsai-bridge.git
-   cd handsai-bridge
-   ```
+- [Go 1.21+](https://golang.org/dl/) — only needed to **build** from source.
+- A running instance of [HandsAI v3](https://github.com/Vrivaans/handsaiv3) (default: `http://localhost:8080`).
 
-2. Instala las dependencias del proyecto. Este proyecto no tiene dependencias de producción, pero sí de desarrollo como TypeScript.
-   ```bash
-   npm install
-   ```
+## Quick Start
 
-## Uso
+### Option A: Use the pre-compiled binary
 
-Este proyecto está diseñado para ser ejecutado como un servidor MCP. El cliente MCP (como el que se usa en el proyecto HandsAI) se configurará para conectarse a este servidor.
+A pre-compiled `handsai-mcp` binary for macOS (darwin/arm64) is included in this repo. Just make it executable:
 
-### Configuración del Cliente MCP
+```bash
+chmod +x handsai-mcp
+```
 
-Para que un cliente MCP se conecte a este bridge, debes configurarlo de manera similar al siguiente ejemplo. Este JSON le indica al cliente cómo iniciar y comunicarse con el servidor de `handsai-bridge`.
+### Option B: Build from source
 
-Asegúrate de reemplazar la ruta en `args` con la ruta **absoluta** al archivo `index.ts` en tu sistema.
+```bash
+git clone https://github.com/Vrivaans/handsai-bridge.git
+cd handsai-bridge
+go build -o handsai-mcp main.go
+```
+
+## Configuration
+
+By default, the bridge connects to `http://localhost:8080`.
+
+To change the port or host, create a `config.json` file **in the same directory as the binary**:
+
+```json
+{
+  "handsaiUrl": "http://localhost:9090"
+}
+```
+
+If the file doesn't exist, the default is used automatically.
+
+## IDE Integration
+
+### Antigravity / Claude Desktop / Any MCP Client
+
+Add the following to your `mcp_config.json` (Antigravity) or `claude_desktop_config.json` (Claude Desktop):
 
 ```json
 {
   "mcpServers": {
     "handsai": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "tsx",
-        "/ruta/absoluta/a/tu/proyecto/handsai-bridge/index.ts"
-      ]
+      "command": "/absolute/path/to/handsai-mcp",
+      "args": ["mcp"]
     }
   }
 }
 ```
 
-> **Nota:** Si experimentas errores de permisos (`EPERM`) al conectar con Claude Desktop en macOS, intenta mover la carpeta del proyecto a una ubicación pública como `Documentos`. MacOS a veces restringe el acceso de aplicaciones a carpetas como `Escritorio`, `Descargas` o carpetas sincronizadas.
+> **Important:** Use the **absolute path** to the binary. The `args: ["mcp"]` field is required by some IDE clients to properly register the server.
 
-### Ejecución
+## How It Works
 
-Una vez que el cliente MCP esté configurado, iniciará automáticamente el servidor `handsai-bridge` cuando sea necesario, utilizando el comando y los argumentos especificados. No necesitas ejecutar el servidor manualmente.
-
-El archivo `index.ts` contiene la lógica principal para levantar el servidor, escuchar conexiones y manejar la comunicación entre el cliente y el bridge.
-
-## Conexión con HandsAI
-
-El propósito principal de este bridge es servir como un punto de conexión para el servidor de Java del proyecto [HandsAI](https://github.com/Vrivaans/handsai). El servidor de Java actuará como cliente de este bridge, permitiendo el intercambio de información y comandos entre ambos sistemas.
-
-## Configuración Avanzada
-
-Por defecto, el bridge intenta conectarse a `http://localhost:8080`.
-
-Al iniciar por primera vez, el servidor **creará automáticamente** un archivo `config.json` en la misma carpeta que `index.ts` con la configuración por defecto. Puedes editar este archivo para cambiar la URL:
-
-```json
-{
-  "handsaiUrl": "http://tu-servidor:puerto"
-}
 ```
+IDE (MCP Client)  →  stdio JSON-RPC  →  handsai-mcp (Go)  →  HTTP  →  HandsAI (Spring Boot)
+```
+
+1. The IDE spawns `handsai-mcp` as a subprocess.
+2. The bridge reads JSON-RPC messages from `stdin` line by line.
+3. For `tools/list`, it calls `GET /mcp/tools/list` on HandsAI.
+4. For `tools/call`, it calls `POST /mcp/tools/call` on HandsAI.
+5. Responses are written back to `stdout` as JSON-RPC.
+
+## Cross-Compilation
+
+Build for other platforms from macOS:
+
+```bash
+# Linux (amd64)
+GOOS=linux GOARCH=amd64 go build -o handsai-mcp-linux main.go
+
+# Windows
+GOOS=windows GOARCH=amd64 go build -o handsai-mcp.exe main.go
+
+# macOS Intel
+GOOS=darwin GOARCH=amd64 go build -o handsai-mcp-intel main.go
+```
+
+## Related Projects
+
+- [HandsAI v3](https://github.com/Vrivaans/handsaiv3) — The Spring Boot backend this bridge connects to.
