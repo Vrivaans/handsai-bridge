@@ -99,7 +99,7 @@ func handleLine(line []byte) {
 			"protocolVersion": "2024-11-05",
 			"capabilities": map[string]interface{}{
 				"tools": map[string]interface{}{
-					"listChanged": false,
+					"listChanged": true,
 				},
 			},
 			"serverInfo": map[string]interface{}{
@@ -146,6 +146,18 @@ func handleToolsList(id interface{}) {
 		tools = t
 	}
 
+	// Inject the virtual sync tool
+	if toolsSlice, ok := tools.([]interface{}); ok {
+		tools = append(toolsSlice, map[string]interface{}{
+			"name":        "handsai_sync_tools",
+			"description": "Fuerza una actualización de las Herramientas y Proveedores cacheados enviando una notificación MCP, sin necesidad de reiniciar el servidor.",
+			"inputSchema": map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		})
+	}
+
 	sendResponse(id, map[string]interface{}{
 		"tools": tools,
 	})
@@ -163,6 +175,23 @@ func handleToolsCall(id interface{}, params json.RawMessage) {
 	name, _ := pMap["name"].(string)
 	if name == "" {
 		sendError(id, -32602, "Invalid params: tool name is required", nil)
+		return
+	}
+
+	if name == "handsai_sync_tools" {
+		// Send the list_changed notification to the MCP client
+		notification := map[string]interface{}{
+			"jsonrpc": "2.0",
+			"method":  "notifications/tools/list_changed",
+		}
+		out, _ := json.Marshal(notification)
+		fmt.Println(string(out))
+
+		sendResponse(id, map[string]interface{}{
+			"content": []map[string]interface{}{
+				{"type": "text", "text": "¡Caché de MCP invalidado exitosamente! El cliente de Inteligencia Artificial acaba de ser notificado para que descargue la nueva lista de herramientas de HandsAI automáticamente."},
+			},
+		})
 		return
 	}
 
