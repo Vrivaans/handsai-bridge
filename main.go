@@ -42,6 +42,7 @@ func loadConfig() string {
 }
 
 var backendURL = loadConfig()
+var apiToken = os.Getenv("HANDSAI_TOKEN")
 
 type McpRequest struct {
 	Jsonrpc string          `json:"jsonrpc"`
@@ -119,7 +120,17 @@ func handleLine(line []byte) {
 }
 
 func handleToolsList(id interface{}) {
-	resp, err := http.Get(backendURL + "/mcp/tools/list")
+	req, err := http.NewRequest("GET", backendURL+"/mcp/tools/list", nil)
+	if err != nil {
+		sendError(id, -32603, "Internal error", err.Error())
+		return
+	}
+	if apiToken != "" {
+		req.Header.Set("X-HandsAI-Token", apiToken)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		sendError(id, -32603, "Internal error", err.Error())
 		return
@@ -146,6 +157,18 @@ func handleToolsList(id interface{}) {
 		tools = t
 	}
 
+	// Inject the virtual sync tool
+	if toolsSlice, ok := tools.([]interface{}); ok {
+		tools = append(toolsSlice, map[string]interface{}{
+			"name":        "handsai_sync_tools",
+			"description": "Fuerza una actualización de las Herramientas y Proveedores cacheados enviando una notificación MCP, sin necesidad de reiniciar el servidor.",
+			"inputSchema": map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		})
+	}
+
 	sendResponse(id, map[string]interface{}{
 		"tools": tools,
 	})
@@ -166,6 +189,23 @@ func handleToolsCall(id interface{}, params json.RawMessage) {
 		return
 	}
 
+	if name == "handsai_sync_tools" {
+		// Send the list_changed notification to the MCP client
+		notification := map[string]interface{}{
+			"jsonrpc": "2.0",
+			"method":  "notifications/tools/list_changed",
+		}
+		out, _ := json.Marshal(notification)
+		fmt.Println(string(out))
+
+		sendResponse(id, map[string]interface{}{
+			"content": []map[string]interface{}{
+				{"type": "text", "text": "¡Caché de MCP invalidado exitosamente! El cliente de Inteligencia Artificial acaba de ser notificado para que descargue la nueva lista de herramientas de HandsAI automáticamente."},
+			},
+		})
+		return
+	}
+
 	args, _ := pMap["arguments"]
 	if args == nil {
 		args = map[string]interface{}{}
@@ -182,7 +222,19 @@ func handleToolsCall(id interface{}, params json.RawMessage) {
 	}
 
 	reqBody, _ := json.Marshal(mcpCall)
-	resp, err := http.Post(backendURL+"/mcp/tools/call", "application/json", bytes.NewBuffer(reqBody))
+	
+	req, err := http.NewRequest("POST", backendURL+"/mcp/tools/call", bytes.NewBuffer(reqBody))
+	if err != nil {
+		sendError(id, -32603, "Internal error", err.Error())
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if apiToken != "" {
+		req.Header.Set("X-HandsAI-Token", apiToken)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		sendError(id, -32603, "Execution error", err.Error())
 		return
