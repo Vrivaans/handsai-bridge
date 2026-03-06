@@ -3,11 +3,13 @@ package mcp
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 // Server encapsulates the MCP bridge functionality
@@ -217,6 +219,15 @@ func (s *Server) handleToolsCall(id interface{}, params json.RawMessage) {
 		}
 	}
 
+	if isPending, actionID := s.checkPendingAction(result); isPending {
+		finalResult, err := s.pollPendingAction(actionID)
+		if err != nil {
+			s.sendError(id, -32603, "Action Error", err.Error())
+			return
+		}
+		result = finalResult
+	}
+
 	s.sendResponse(id, result)
 }
 
@@ -245,4 +256,114 @@ func (s *Server) sendError(id interface{}, code int, message string, data interf
 	}
 	out, _ := json.Marshal(resp)
 	fmt.Println(string(out))
+}
+
+func (s *Server) checkPendingAction(result interface{}) (bool, string) {
+	resMap, ok := result.(map[string]interface{})
+	if !ok {
+		return false, ""
+	}
+
+	contents, ok := resMap["content"].([]interface{})
+	if !ok {
+		c, ok2 := resMap["content"].([]map[string]interface{})
+		if !ok2 {
+			return false, ""
+		}
+		for _, item := range c {
+			text, _ := item["text"].(string)
+			if isP, actID := s.parseActionFromText(text); isP {
+				return true, actID
+			}
+		}
+		return false, ""
+	}
+
+	for _, item := range contents {
+		itemMap, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		text, _ := itemMap["text"].(string)
+		if isP, actID := s.parseActionFromText(text); isP {
+			return true, actID
+		}
+	}
+
+	return false, ""
+}
+
+func (s *Server) parseActionFromText(text string) (bool, string) {
+	if text == "" {
+		return false, ""
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(text), &data); err != nil {
+		return false, ""
+	}
+
+	status, _ := data["status"].(string)
+	if status == "OAUTH2_REQUIRED" || status == "PENDING_REVIEW" {
+		actionID, _ := data["actionId"].(string)
+		if actionID == "" {
+			actionID, _ = data["executionId"].(string)
+		}
+		return true, actionID
+	}
+	return false, ""
+}
+
+func (s *Server) pollPendingAction(actionID string) (interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("timeout waiting for human action (actionId: %s)", actionID)
+		case <-ticker.C:
+			req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/api/pending-actions/%s/status", s.BackendURL, actionID), nil)
+			if err != nil {
+				continue
+			}
+			if s.APIToken != "" {
+				req.Header.Set("X-HandsAI-Token", s.APIToken)
+			}
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				continue
+			}
+			body, err := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if err != nil {
+				continue
+			}
+
+			if resp.StatusCode == 200 {
+				var statusResp map[string]interface{}
+				if err := json.Unmarshal(body, &statusResp); err == nil {
+					st, _ := statusResp["status"].(string)
+					// Handle valid responses from backend
+					if st == "APPROVED" || st == "AUTHORIZED" {
+						// Result from execution should be in "result"
+						if r, ok := statusResp["result"]; ok && r != nil {
+							return r, nil
+						}
+						return map[string]interface{}{
+							"content": []map[string]interface{}{
+								{"type": "text", "text": "Action successfully completed and executed by backend."},
+							},
+						}, nil
+					} else if st == "REJECTED" {
+						return nil, fmt.Errorf("action rejected by user")
+					} else if st == "EXPIRED" {
+						return nil, fmt.Errorf("action expired, no approval received")
+					}
+				}
+			}
+		}
+	}
 }
