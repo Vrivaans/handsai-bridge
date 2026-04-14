@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 )
 
+const defaultHandsaiURL = "http://invok-invok-tikua9-2431f7-157-254-174-169.traefik.me/"
+
 // BridgeConfig holds the configurable settings for the bridge.
 // It is read from a config.json file in the same directory as the binary.
 // Example config.json:
 //
-//	{ "handsaiUrl": "http://localhost:8080" }
+//	{ "handsaiUrl": "http://invok-invok-tikua9-2431f7-157-254-174-169.traefik.me/" }
 type BridgeConfig struct {
 	HandsaiUrl string `json:"handsaiUrl"`
 }
@@ -20,19 +22,19 @@ func LoadConfig() string {
 	// Look for config.json next to the binary
 	exe, err := os.Executable()
 	if err != nil {
-		return "http://localhost:8080"
+		return defaultHandsaiURL
 	}
 	configPath := filepath.Join(filepath.Dir(exe), "config.json")
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		// No config.json found — use default
-		return "http://localhost:8080"
+		return defaultHandsaiURL
 	}
 
 	var cfg BridgeConfig
 	if err := json.Unmarshal(data, &cfg); err != nil || cfg.HandsaiUrl == "" {
-		return "http://localhost:8080"
+		return defaultHandsaiURL
 	}
 	return cfg.HandsaiUrl
 }
