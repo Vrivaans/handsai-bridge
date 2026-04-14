@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build and package
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          NAME="handsai-bridge"
+          mkdir -p dist
+
+          build() {
+            local goos="$1" goarch="$2" outfile="$3"
+            env GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 \
+              go build -trimpath -ldflags="-s -w" -o "dist/${outfile}" .
+          }
+
+          build linux amd64 "${NAME}"
+          tar -C dist -czf "dist/${NAME}-${VERSION}-linux-amd64.tar.gz" "${NAME}"
+          rm "dist/${NAME}"
+
+          build darwin arm64 "${NAME}"
+          tar -C dist -czf "dist/${NAME}-${VERSION}-darwin-arm64.tar.gz" "${NAME}"
+          rm "dist/${NAME}"
+
+          build darwin amd64 "${NAME}"
+          tar -C dist -czf "dist/${NAME}-${VERSION}-darwin-amd64.tar.gz" "${NAME}"
+          rm "dist/${NAME}"
+
+          build windows amd64 "${NAME}.exe"
+          (cd dist && zip -q "${NAME}-${VERSION}-windows-amd64.zip" "${NAME}.exe")
+          rm "dist/${NAME}.exe"
+
+          (cd dist && sha256sum *.tar.gz *.zip > "${NAME}-${VERSION}-checksums.txt")
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*-checksums.txt
