@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-const defaultHandsaiURL = "http://invok-invok-tikua9-2431f7-157-254-174-169.traefik.me/"
+const defaultHandsaiURL = "http://invok-invok-bbthdh-2b633b-157-254-174-169.traefik.me/"
 
 // BridgeConfig holds the configurable settings for the bridge.
 // It is read from a config.json file in the same directory as the binary.

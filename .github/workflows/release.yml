@@ -25,7 +25,7 @@ jobs:
           VERSION: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          NAME="handsai-bridge"
+          NAME="invok-mcp"
           mkdir -p dist
 
           build() {

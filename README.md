@@ -1,8 +1,8 @@
-# HandsAI Bridge (Go)
+# Invok Bridge (Go)
 
-A lightweight MCP (Model Context Protocol) server written in Go that acts as a bridge between any MCP-compatible IDE client and the [HandsAI v3](https://github.com/Vrivaans/handsaiv3) Spring Boot backend.
+A lightweight MCP (Model Context Protocol) server written in Go that acts as a bridge between any MCP-compatible IDE client and the [Invok](https://github.com/Vrivaans/handsaiv3) Spring Boot backend.
 
-It translates **JSON-RPC over stdio** (the MCP standard) into plain **HTTP REST calls** to the HandsAI API, and back.
+It translates **JSON-RPC over stdio** (the MCP standard) into plain **HTTP REST calls** to the Invok API, and back.
 
 > The previous Node.js/TypeScript implementation has been deprecated in favor of this Go version due to its universal compatibility with restricted IDE environments (like Antigravity and Claude Desktop) where runtime dependencies like `node`, `npx`, or `tsx` are often unavailable.
 
@@ -16,16 +16,16 @@ It translates **JSON-RPC over stdio** (the MCP standard) into plain **HTTP REST 
 ## Prerequisites
 
 - [Go 1.21+](https://golang.org/dl/) — only needed to **build** from source.
-- A running instance of [HandsAI v3](https://github.com/Vrivaans/handsaiv3) (default: `http://localhost:8080`).
+- A running instance of [Invok](https://github.com/Vrivaans/handsaiv3) (default: `http://localhost:8080`).
 
 ## Quick Start
 
 ### Option A: Use the pre-compiled binary
 
-A pre-compiled `handsai-mcp` binary for macOS (darwin/arm64) is included in this repo. Just make it executable:
+A pre-compiled `invok-mcp` binary for macOS (darwin/arm64) is included in this repo. Just make it executable:
 
 ```bash
-chmod +x handsai-mcp
+chmod +x invok-mcp
 ```
 
 ### Option B: Build from source
@@ -33,7 +33,7 @@ chmod +x handsai-mcp
 ```bash
 git clone https://github.com/Vrivaans/handsai-bridge.git
 cd handsai-bridge
-go build -o handsai-mcp main.go
+go build -o invok-mcp main.go
 ```
 
 ## Configuration
@@ -59,8 +59,8 @@ Add the following to your `mcp_config.json` (Antigravity) or `claude_desktop_con
 ```json
 {
   "mcpServers": {
-    "handsai": {
-      "command": "/absolute/path/to/handsai-mcp",
+    "invok": {
+      "command": "/absolute/path/to/invok-mcp",
       "args": ["mcp"]
     }
   }
@@ -72,13 +72,13 @@ Add the following to your `mcp_config.json` (Antigravity) or `claude_desktop_con
 ## How It Works
 
 ```
-IDE (MCP Client)  →  stdio JSON-RPC  →  handsai-mcp (Go)  →  HTTP  →  HandsAI (Spring Boot)
+IDE (MCP Client)  →  stdio JSON-RPC  →  invok-mcp (Go)  →  HTTP  →  Invok (Spring Boot)
 ```
 
-1. The IDE spawns `handsai-mcp` as a subprocess.
+1. The IDE spawns `invok-mcp` as a subprocess.
 2. The bridge reads JSON-RPC messages from `stdin` line by line.
-3. For `tools/list`, it calls `GET /mcp/tools/list` on HandsAI.
-4. For `tools/call`, it calls `POST /mcp/tools/call` on HandsAI.
+3. For `tools/list`, it calls `GET /mcp/tools/list` on Invok.
+4. For `tools/call`, it calls `POST /mcp/tools/call` on Invok.
 5. Responses are written back to `stdout` as JSON-RPC.
 
 ## Cross-Compilation
@@ -87,15 +87,15 @@ Build for other platforms from macOS:
 
 ```bash
 # Linux (amd64)
-GOOS=linux GOARCH=amd64 go build -o handsai-mcp-linux main.go
+GOOS=linux GOARCH=amd64 go build -o invok-mcp-linux main.go
 
 # Windows
-GOOS=windows GOARCH=amd64 go build -o handsai-mcp.exe main.go
+GOOS=windows GOARCH=amd64 go build -o invok-mcp.exe main.go
 
 # macOS Intel
-GOOS=darwin GOARCH=amd64 go build -o handsai-mcp-intel main.go
+GOOS=darwin GOARCH=amd64 go build -o invok-mcp-intel main.go
 ```
 
 ## Related Projects
 
-- [HandsAI v3](https://github.com/Vrivaans/handsaiv3) — The Spring Boot backend this bridge connects to.
+- [Invok](https://github.com/Vrivaans/handsaiv3) — The Spring Boot backend this bridge connects to.
