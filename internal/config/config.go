@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const defaultInvokURL = "https://useinvok.run/"
@@ -34,12 +35,12 @@ func LoadConfig() string {
 
 	var cfg BridgeConfig
 	if err := json.Unmarshal(data, &cfg); err != nil || cfg.InvokUrl == "" {
-		return defaultInvokURL
+		return strings.TrimSuffix(defaultInvokURL, "/")
 	}
-	return cfg.InvokUrl
+	return strings.TrimSuffix(cfg.InvokUrl, "/")
 }
 
 // GetAPIToken retrieves the API token for Invok from the environment.
 func GetAPIToken() string {
-	return os.Getenv("INVOK_TOKEN")
+	return os.Getenv("HANDSAI_TOKEN")
 }
