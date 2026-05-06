@@ -31,8 +31,8 @@ chmod +x invok-mcp
 ### Option B: Build from source
 
 ```bash
-git clone https://github.com/Vrivaans/handsai-bridge.git
-cd handsai-bridge
+git clone https://github.com/Vrivaans/invok-bridge.git
+cd invok-bridge
 go build -o invok-mcp main.go
 ```
 
@@ -44,7 +44,7 @@ To change the port or host, create a `config.json` file **in the same directory 
 
 ```json
 {
-  "handsaiUrl": "http://localhost:9090"
+  "invokUrl": "http://localhost:9090"
 }
 ```
 

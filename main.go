@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/ivanv/handsai-go-bridge/internal/config"
-	"github.com/ivanv/handsai-go-bridge/internal/mcp"
+	"github.com/ivanv/invok-go-bridge/internal/config"
+	"github.com/ivanv/invok-go-bridge/internal/mcp"
 )
 
 func main() {

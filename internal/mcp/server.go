@@ -65,7 +65,7 @@ func (s *Server) handleLine(line []byte) {
 				},
 			},
 			"serverInfo": map[string]interface{}{
-				"name":    "HandsAI Go MCP Bridge",
+				"name":    "Invok Go MCP Bridge",
 				"version": "1.0.0",
 			},
 		})
@@ -121,7 +121,7 @@ func (s *Server) handleToolsList(id interface{}) {
 	// Inject the virtual sync tool
 	if toolsSlice, ok := tools.([]interface{}); ok {
 		tools = append(toolsSlice, map[string]interface{}{
-			"name":        "handsai_sync_tools",
+			"name":        "invok_sync_tools",
 			"description": "Fuerza una actualización de las Herramientas y Proveedores cacheados enviando una notificación MCP, sin necesidad de reiniciar el servidor.",
 			"inputSchema": map[string]interface{}{
 				"type":       "object",
@@ -150,7 +150,7 @@ func (s *Server) handleToolsCall(id interface{}, params json.RawMessage) {
 		return
 	}
 
-	if name == "handsai_sync_tools" {
+	if name == "invok_sync_tools" {
 		// Send the list_changed notification to the MCP client
 		notification := map[string]interface{}{
 			"jsonrpc": "2.0",
@@ -161,7 +161,7 @@ func (s *Server) handleToolsCall(id interface{}, params json.RawMessage) {
 
 		s.sendResponse(id, map[string]interface{}{
 			"content": []map[string]interface{}{
-				{"type": "text", "text": "¡Caché de MCP invalidado exitosamente! El cliente de Inteligencia Artificial acaba de ser notificado para que descargue la nueva lista de herramientas de HandsAI automáticamente."},
+				{"type": "text", "text": "¡Caché de MCP invalidado exitosamente! El cliente de Inteligencia Artificial acaba de ser notificado para que descargue la nueva lista de herramientas de Invok automáticamente."},
 			},
 		})
 		return

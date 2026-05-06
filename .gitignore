@@ -3,3 +3,5 @@ node_modules
 .DS_Store
 invok-mcp
 dist/
+invok-mcp
+config.json

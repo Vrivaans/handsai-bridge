@@ -6,40 +6,40 @@ import (
 	"path/filepath"
 )
 
-const defaultHandsaiURL = "https://useinvok.run/"
+const defaultInvokURL = "https://useinvok.run/"
 
 // BridgeConfig holds the configurable settings for the bridge.
 // It is read from a config.json file in the same directory as the binary.
 // Example config.json:
 //
-//	{ "handsaiUrl": "https://useinvok.run/" }
+//	{ "invokUrl": "https://useinvok.run/" }
 type BridgeConfig struct {
-	HandsaiUrl string `json:"handsaiUrl"`
+	InvokUrl string `json:"invokUrl"`
 }
 
-// LoadConfig reads the config.json file and returns the HandsAI Backend URL.
+// LoadConfig reads the config.json file and returns the Invok Backend URL.
 func LoadConfig() string {
 	// Look for config.json next to the binary
 	exe, err := os.Executable()
 	if err != nil {
-		return defaultHandsaiURL
+		return defaultInvokURL
 	}
 	configPath := filepath.Join(filepath.Dir(exe), "config.json")
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		// No config.json found — use default
-		return defaultHandsaiURL
+		return defaultInvokURL
 	}
 
 	var cfg BridgeConfig
-	if err := json.Unmarshal(data, &cfg); err != nil || cfg.HandsaiUrl == "" {
-		return defaultHandsaiURL
+	if err := json.Unmarshal(data, &cfg); err != nil || cfg.InvokUrl == "" {
+		return defaultInvokURL
 	}
-	return cfg.HandsaiUrl
+	return cfg.InvokUrl
 }
 
-// GetAPIToken retrieves the API token for HandsAI from the environment.
+// GetAPIToken retrieves the API token for Invok from the environment.
 func GetAPIToken() string {
-	return os.Getenv("HANDSAI_TOKEN")
+	return os.Getenv("INVOK_TOKEN")
 }
